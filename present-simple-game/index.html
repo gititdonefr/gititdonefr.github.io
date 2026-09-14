@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Present Simple: Two-Player Speaking Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&amp;family=Instrument+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  --felt:#0E3B33;
+  --felt-deep:#092A24;
+  --felt-line:#1B554A;
+  --card:#FBF7EE;
+  --card-edge:#E4DCCB;
+  --ink:#14201B;
+  --ink-soft:#5A6A62;
+  --a:#E2603A;
+  --b:#3D7FD6;
+  --gold:#EBBA55;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(120% 90% at 50% 0%, #14463C 0%, var(--felt) 45%, var(--felt-deep) 100%);
+  color:var(--card);
+  font-family:"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size:17px;
+  line-height:1.45;
+  min-height:100vh;
+  padding:20px 20px 56px;
+}
+h1,h2,h3,.display{font-family:"Bricolage Grotesque", "Instrument Sans", system-ui, sans-serif;}
+.wrap{max-width:1080px;margin:0 auto}
+
+/* ---------- scoreboard ---------- */
+.board{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  gap:14px;
+  align-items:stretch;
+}
+.player{
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--felt-line);
+  border-radius:var(--r);
+  padding:14px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  position:relative;
+  overflow:hidden;
+}
+.player::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:var(--pc)}
+.player[data-p="A"]{--pc:var(--a)}
+.player[data-p="B"]{--pc:var(--b)}
+.player.active{background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px var(--pc)}
+.nameline{display:flex;align-items:center;gap:10px}
+.name{
+  background:transparent;border:0;color:var(--card);font:600 19px/1.2 "Instrument Sans",sans-serif;
+  width:100%;padding:2px 4px;border-bottom:1px dashed rgba(255,255,255,.25);border-radius:4px;
+}
+.name:focus{outline:2px solid var(--pc);outline-offset:2px;border-bottom-color:transparent}
+.scoreline{display:flex;align-items:center;gap:12px}
+.score{font-family:"Bricolage Grotesque",sans-serif;font-size:52px;font-weight:800;line-height:.9;color:var(--pc);min-width:1.4em}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+button{
+  font-family:inherit;font-size:15px;cursor:pointer;border-radius:9px;
+  border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.08);color:var(--card);
+  padding:7px 12px;transition:background .12s ease, transform .08s ease;
+}
+button:hover{background:rgba(255,255,255,.16)}
+button:active{transform:translateY(1px)}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.plus{background:var(--pc);border-color:var(--pc);color:#10201B;font-weight:600}
+.plus:hover{filter:brightness(1.08);background:var(--pc)}
+.tiny{font-size:13px;padding:5px 9px;opacity:.85}
+.turnbox{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  padding:12px 18px;border:1px dashed var(--felt-line);border-radius:var(--r);text-align:center;
+}
+.turnbox .label{font-size:13px;letter-spacing:.02em;color:#A9C4BB}
+.turnname{font-family:"Bricolage Grotesque",sans-serif;font-size:22px;font-weight:700;color:var(--turnc,var(--a))}
+
+/* ---------- game tabs ---------- */
+.games{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 18px}
+.tab{
+  background:rgba(255,255,255,.05);border:1px solid var(--felt-line);
+  padding:9px 14px;border-radius:999px;font-size:15px;
+}
+.tab[aria-selected="true"]{background:var(--card);color:var(--ink);border-color:var(--card);font-weight:600}
+
+/* ---------- stage ---------- */
+.stage{display:none}
+.stage.on{display:block}
+.stage h2{font-size:30px;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
+.rule{color:#B6D0C7;margin:0 0 18px;max-width:62ch}
+
+.card{
+  background:var(--card);color:var(--ink);border-radius:20px;
+  border:1px solid var(--card-edge);
+  box-shadow:0 18px 34px rgba(0,0,0,.28);
+  padding:44px 40px;min-height:230px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;
+}
+.card .kicker{font-size:14px;color:var(--ink-soft)}
+.card .big{
+  font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(26px,4.2vw,44px);
+  line-height:1.12;letter-spacing:-.015em;max-width:20ch;
+}
+.card .medium{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:clamp(22px,3vw,32px);line-height:1.2;max-width:26ch}
+.card .sub{font-size:16px;color:var(--ink-soft);max-width:44ch}
+.dealt{animation:flip .32s ease-out}
+@keyframes flip{from{transform:rotateX(-70deg);opacity:0}to{transform:rotateX(0);opacity:1}}
+@media (prefers-reduced-motion:reduce){.dealt{animation:none}}
+
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;align-items:center}
+.primary{background:var(--gold);border-color:var(--gold);color:#20170A;font-weight:600;font-size:16px;padding:11px 20px}
+.primary:hover{background:#F0C669}
+.count{font-size:14px;color:#A9C4BB;margin-left:auto}
+
+/* categories */
+.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+@media (max-width:640px){.cats{grid-template-columns:repeat(2,1fr)}}
+.cat{padding:14px 12px;font-size:16px;border-radius:12px;text-align:center}
+.cat[aria-pressed="true"]{background:var(--card);color:var(--ink);border-color:var(--card);font-weight:600}
+
+/* timer */
+.timer{display:flex;align-items:center;gap:12px;margin-top:14px}
+.bar{flex:1;height:8px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden}
+.fill{height:100%;width:100%;background:var(--gold);transition:width .25s linear}
+.secs{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:22px;min-width:2.4em;text-align:right}
+
+/* secret card */
+.hidden-face{background:repeating-linear-gradient(45deg,#123F37,#123F37 10px,#0F3630 10px,#0F3630 20px);color:var(--card);border-color:var(--felt-line)}
+.hidden-face .big{color:var(--card)}
+.deckswitch{display:flex;gap:8px;margin-bottom:14px}
+
+/* checklist */
+.list{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:640px){.list{grid-template-columns:1fr}}
+.list li{margin:0}
+.item{
+  width:100%;text-align:left;padding:13px 15px;font-size:17px;border-radius:12px;
+  background:var(--card);color:var(--ink);border:1px solid var(--card-edge);
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+}
+.item:hover{background:#fff}
+.item .mark{font-size:14px;color:var(--ink-soft)}
+.item.doneA{background:var(--a);border-color:var(--a);color:#fff}
+.item.doneB{background:var(--b);border-color:var(--b);color:#fff}
+.item.doneA .mark,.item.doneB .mark{color:rgba(255,255,255,.85)}
+.foot{margin-top:34px;color:#8FB0A6;font-size:14px;border-top:1px solid var(--felt-line);padding-top:14px}
+@media (max-width:760px){
+  .board{grid-template-columns:1fr;}
+  .turnbox{order:-1}
+  .card{padding:32px 22px;min-height:190px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="board">
+    <div class="player active" data-p="A" id="panelA">
+      <div class="nameline"><input class="name" id="nameA" value="Player A" aria-label="First student's name"></div>
+      <div class="scoreline">
+        <div class="score" id="scoreA">0</div>
+        <div class="btns">
+          <button class="plus" data-add="A">+1 point</button>
+          <button class="tiny" data-sub="A">Wrong auxiliary, −1</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="turnbox">
+      <div class="label">Asking now</div>
+      <div class="turnname" id="turnName" style="--turnc: var(--a);">Player A</div>
+      <button id="switchTurn">Switch</button>
+    </div>
+
+    <div class="player" data-p="B" id="panelB">
+      <div class="nameline"><input class="name" id="nameB" value="Player B" aria-label="Second student's name"></div>
+      <div class="scoreline">
+        <div class="score" id="scoreB">0</div>
+        <div class="btns">
+          <button class="plus" data-add="B">+1 point</button>
+          <button class="tiny" data-sub="B">Wrong auxiliary, −1</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="games" role="tablist" aria-label="Games">
+    <button class="tab" role="tab" aria-selected="true" data-game="g1">Spot the lie</button>
+    <button class="tab" role="tab" aria-selected="false" data-game="g2">Who does it?</button>
+    <button class="tab" role="tab" aria-selected="false" data-game="g3">Category battle</button>
+    <button class="tab" role="tab" aria-selected="false" data-game="g4">Two truths, one lie</button>
+    <button class="tab" role="tab" aria-selected="false" data-game="g5">Secret person</button>
+    <button class="tab" role="tab" aria-selected="false" data-game="g6">Find out if your partner…</button>
+  </div>
+
+  <!-- 1 -->
+  <section class="stage on" id="g1" role="tabpanel">
+    <h2>Spot the lie</h2>
+    <p class="rule">Take the topic. Say three sentences about your real life, one of them false. Your partner asks questions and guesses which one.</p>
+    <div class="card" id="c1">
+      <div class="kicker">Topic</div>
+      <div class="big" id="t1">Press Deal topic</div>
+    </div>
+    <div class="controls">
+      <button class="primary" data-deal="1">Deal topic</button>
+      <span class="count" id="n1">12 of 12 left</span>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="stage" id="g2" role="tabpanel">
+    <h2>Who does it?</h2>
+    <p class="rule">Turn the card into a question for your partner. If the answer is yes, you win the point. If it is no, ask one more question before you pass the turn.</p>
+    <div class="card" id="c2">
+      <div class="kicker">Ask about this</div>
+      <div class="big" id="t2">Press Deal card</div>
+    </div>
+    <div class="controls">
+      <button class="primary" data-deal="2">Deal card</button>
+      <button data-reset="2">Shuffle deck</button>
+      <span class="count" id="n2">24 of 24 left</span>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="stage" id="g3" role="tabpanel">
+    <h2>Category battle</h2>
+    <p class="rule">Choose a category, answer in 30 seconds, then your partner asks one follow-up question.</p>
+    <div class="cats" id="cats"><button class="cat" aria-pressed="false">Home</button><button class="cat" aria-pressed="false">Free time</button><button class="cat" aria-pressed="false">Food</button><button class="cat" aria-pressed="false">Work or school</button><button class="cat" aria-pressed="false">Habits</button><button class="cat" aria-pressed="false">Technology</button></div>
+    <div class="card" id="c3">
+      <div class="kicker" id="k3">Category</div>
+      <div class="medium" id="t3">Choose a category</div>
+    </div>
+    <div class="timer">
+      <button id="startTimer">Start 30 s</button>
+      <div class="bar"><div class="fill" id="fill"></div></div>
+      <div class="secs" id="secs">30</div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="stage" id="g4" role="tabpanel">
+    <h2>Two truths, one lie</h2>
+    <p class="rule">Make three statements about this area of your life. Your partner asks at least three questions before guessing the lie.</p>
+    <div class="card" id="c4">
+      <div class="kicker">Talk about</div>
+      <div class="big" id="t4">Press Deal area</div>
+    </div>
+    <div class="controls">
+      <button class="primary" data-deal="4">Deal area</button>
+      <span class="count" id="n4">8 of 8 left</span>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="stage" id="g5" role="tabpanel">
+    <h2>Secret person</h2>
+    <p class="rule">One student sees the card, the other asks yes or no questions only. Ten questions maximum.</p>
+    <div class="deckswitch">
+      <button class="tab" aria-selected="true" data-deck="jobs">People and jobs</button>
+      <button class="tab" aria-selected="false" data-deck="famous">Famous people</button>
+    </div>
+    <div class="card hidden-face" id="c5">
+      <div class="kicker">Card is face down</div>
+      <div class="big" id="t5">Press Deal person</div>
+    </div>
+    <div class="controls">
+      <button class="primary" data-deal="5">Deal person</button>
+      <button id="reveal5">Show card</button>
+      <button id="hide5">Hide card</button>
+      <span class="count" id="n5">20 of 20 left</span>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="stage" id="g6" role="tabpanel">
+    <h2>Find out if your partner…</h2>
+    <p class="rule">Ask about one line at a time. After yes or no you must ask a follow-up question, then tap the line to claim it.</p>
+    <ul class="list" id="list6"><li><button class="item"><span>drinks coffee</span><span class="mark">tap to claim</span></button></li><li><button class="item"><span>watches YouTube every day</span><span class="mark">tap to claim</span></button></li><li><button class="item"><span>plays a sport</span><span class="mark">tap to claim</span></button></li><li><button class="item"><span>cooks at home</span><span class="mark">tap to claim</span></button></li><li><button class="item"><span>studies every day</span><span class="mark">tap to claim</span></button></li><li><button class="item"><span>goes out at the weekend</span><span class="mark">tap to claim</span></button></li><li><button class="item"><span>reads books</span><span class="mark">tap to claim</span></button></li><li><button class="item"><span>uses Instagram</span><span class="mark">tap to claim</span></button></li><li><button class="item"><span>gets up before 8</span><span class="mark">tap to claim</span></button></li><li><button class="item"><span>has a pet</span><span class="mark">tap to claim</span></button></li><li><button class="item"><span>listens to podcasts</span><span class="mark">tap to claim</span></button></li><li><button class="item"><span>works at the weekend</span><span class="mark">tap to claim</span></button></li></ul>
+    <div class="controls">
+      <button data-reset="6">Clear the board</button>
+      <span class="count" id="n6">0 of 12 done</span>
+    </div>
+  </section>
+
+  <p class="foot">Reset scores: <button class="tiny" id="resetAll">0 : 0</button></p>
+</div>
+
+<script>
+const decks = {
+  topics: ["Your mornings","Your evenings","Your weekends","Food and drinks","Your work or studies","Sport and exercise","Your phone and the internet","Sleep","Money","Your friends","Travel","Housework"],
+  who: ["gets up before 7","watches Netflix every day","drinks coffee in the morning","plays computer games","cooks dinner at home","studies English every day","goes to bed after midnight","listens to music while working","reads before sleep","orders food online","drinks tea instead of coffee","works at the weekend","calls family every week","wakes up before the alarm","eats breakfast at home","uses TikTok every day","travels every summer","has a pet","plays a musical instrument","does the shopping on Sunday","sleeps more than eight hours","walks to work","takes photos every day","watches football"],
+  areas: ["Your free time","Your family","Your skills","Your daily habits","Your weekends","Food you eat","Places you go","Your phone"],
+  jobs: ["a chef","a taxi driver","a nurse","a teacher","a farmer","a pilot","a barista","a night guard","a firefighter","a hairdresser","a dentist","a bus driver","a programmer","a police officer","a waiter","a postman","a fitness coach","a vet","a journalist","a shop assistant"],
+  famous: ["Spider-Man","Taylor Swift","Lionel Messi","Batman","Harry Potter","Elon Musk","Sherlock Holmes","Shrek","Cristiano Ronaldo","Mr Bean","Santa Claus","James Bond","Beyoncé","Homer Simpson"]
+};
+
+const cats = {
+  "Home":["What do you do first when you come home?","Who cleans your flat?","What time do you usually have dinner?","Who cooks in your family?","What does your kitchen look like in the evening?"],
+  "Free time":["What do you usually do after work?","Where do you go on Friday evening?","What do you do when you have nothing to do?","How often do you meet your friends?","What do you watch in the evening?"],
+  "Food":["What do you eat for breakfast?","How often do you eat out?","What food do you never eat?","What do you drink during the day?","Who cooks better, you or your best friend?"],
+  "Work or school":["What time do you start work?","What do you do every Monday?","How do you get to work?","What part of your day do you hate?","What do you do when you feel tired at work?"],
+  "Habits":["Do you exercise every week?","What do you always do before bed?","What do you often forget?","How often do you check your phone?","What do you do every single day?"],
+  "Technology":["What apps do you use every day?","How long do you spend on your phone?","What social media do you never use?","Which app do you open first in the morning?","What do you do when the internet stops working?"]
+};
+
+const items6 = ["drinks coffee","watches YouTube every day","plays a sport","cooks at home","studies every day","goes out at the weekend","reads books","uses Instagram","gets up before 8","has a pet","listens to podcasts","works at the weekend"];
+
+/* ---------- scores and turn ---------- */
+const scores = {A:0,B:0};
+let turn = "A";
+const el = id => document.getElementById(id);
+
+function paintTurn(){
+  el("panelA").classList.toggle("active", turn==="A");
+  el("panelB").classList.toggle("active", turn==="B");
+  const n = turn==="A" ? el("nameA").value : el("nameB").value;
+  el("turnName").textContent = n || (turn==="A"?"Player A":"Player B");
+  el("turnName").style.setProperty("--turnc", turn==="A" ? "var(--a)" : "var(--b)");
+}
+function paintScores(){ el("scoreA").textContent = scores.A; el("scoreB").textContent = scores.B; }
+
+document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{scores[b.dataset.add]++;paintScores();});
+document.querySelectorAll("[data-sub]").forEach(b=>b.onclick=()=>{scores[b.dataset.sub]--;paintScores();});
+el("switchTurn").onclick = ()=>{ turn = turn==="A"?"B":"A"; paintTurn(); };
+el("nameA").oninput = paintTurn; el("nameB").oninput = paintTurn;
+el("resetAll").onclick = ()=>{scores.A=0;scores.B=0;paintScores();};
+
+/* ---------- tabs ---------- */
+document.querySelectorAll(".tab[data-game]").forEach(tab=>{
+  tab.onclick = ()=>{
+    document.querySelectorAll(".tab[data-game]").forEach(t=>t.setAttribute("aria-selected", t===tab));
+    document.querySelectorAll(".stage").forEach(s=>s.classList.toggle("on", s.id===tab.dataset.game));
+  };
+});
+
+/* ---------- deck helper ---------- */
+function makeDeck(list){ return {pool:[...list], all:list}; }
+function draw(deck){
+  if(!deck.pool.length) deck.pool=[...deck.all];
+  const i = Math.floor(Math.random()*deck.pool.length);
+  return deck.pool.splice(i,1)[0];
+}
+function flash(card){ card.classList.remove("dealt"); void card.offsetWidth; card.classList.add("dealt"); }
+
+const d1 = makeDeck(decks.topics), d2 = makeDeck(decks.who), d4 = makeDeck(decks.areas);
+let d5 = makeDeck(decks.jobs), deck5name = "jobs";
+
+function left(n,deck){ el(n).textContent = deck.pool.length + " of " + deck.all.length + " left"; }
+
+document.querySelectorAll("[data-deal]").forEach(b=>b.onclick=()=>{
+  const g = b.dataset.deal;
+  if(g==="1"){ el("t1").textContent = draw(d1); flash(el("c1")); left("n1",d1); }
+  if(g==="2"){ el("t2").textContent = draw(d2); flash(el("c2")); left("n2",d2); }
+  if(g==="4"){ el("t4").textContent = draw(d4); flash(el("c4")); left("n4",d4); }
+  if(g==="5"){ secret = draw(d5); hideCard(); flash(el("c5")); left("n5",d5); }
+});
+document.querySelectorAll("[data-reset]").forEach(b=>b.onclick=()=>{
+  if(b.dataset.reset==="2"){ d2.pool=[...d2.all]; left("n2",d2); el("t2").textContent="Press Deal card"; }
+  if(b.dataset.reset==="6"){ document.querySelectorAll(".item").forEach(i=>i.className="item"); count6(); }
+});
+
+/* ---------- game 3 ---------- */
+const catBox = el("cats");
+Object.keys(cats).forEach(name=>{
+  const b=document.createElement("button");
+  b.className="cat"; b.textContent=name; b.setAttribute("aria-pressed","false");
+  b.onclick=()=>{
+    document.querySelectorAll(".cat").forEach(c=>c.setAttribute("aria-pressed", c===b));
+    const qs = cats[name];
+    el("k3").textContent = name;
+    el("t3").textContent = qs[Math.floor(Math.random()*qs.length)];
+    flash(el("c3")); resetTimer();
+  };
+  catBox.appendChild(b);
+});
+
+let tId=null, tLeft=30;
+function resetTimer(){ clearInterval(tId); tId=null; tLeft=30; el("secs").textContent="30"; el("fill").style.width="100%"; el("startTimer").textContent="Start 30 s"; }
+el("startTimer").onclick=()=>{
+  if(tId){ resetTimer(); return; }
+  el("startTimer").textContent="Stop";
+  tId=setInterval(()=>{
+    tLeft--; el("secs").textContent=tLeft; el("fill").style.width=(tLeft/30*100)+"%";
+    if(tLeft<=0){ clearInterval(tId); tId=null; el("secs").textContent="0"; el("startTimer").textContent="Start 30 s"; el("fill").style.background="var(--a)"; setTimeout(()=>{el("fill").style.background="var(--gold)";},1200); }
+  },1000);
+};
+
+/* ---------- game 5 ---------- */
+let secret = null;
+function hideCard(){
+  const c = el("c5");
+  c.classList.add("hidden-face");
+  c.querySelector(".kicker").textContent = "Card is face down";
+  el("t5").textContent = secret ? "Ready" : "Press Deal person";
+}
+function showCard(){
+  if(!secret) return;
+  const c = el("c5");
+  c.classList.remove("hidden-face");
+  c.querySelector(".kicker").textContent = "Your secret person";
+  el("t5").textContent = secret;
+  flash(c);
+}
+el("reveal5").onclick = showCard;
+el("hide5").onclick = hideCard;
+document.querySelectorAll("[data-deck]").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("[data-deck]").forEach(x=>x.setAttribute("aria-selected", x===b));
+  deck5name = b.dataset.deck;
+  d5 = makeDeck(decks[deck5name]); secret=null; hideCard(); left("n5",d5);
+});
+
+/* ---------- game 6 ---------- */
+const list = el("list6");
+items6.forEach(text=>{
+  const li=document.createElement("li");
+  const b=document.createElement("button");
+  b.className="item";
+  b.innerHTML = '<span>'+text+'</span><span class="mark">tap to claim</span>';
+  b.onclick=()=>{
+    if(b.classList.contains("doneA")||b.classList.contains("doneB")){ b.className="item"; b.querySelector(".mark").textContent="tap to claim"; }
+    else{
+      b.classList.add(turn==="A"?"doneA":"doneB");
+      b.querySelector(".mark").textContent = (turn==="A" ? el("nameA").value : el("nameB").value) || turn;
+      scores[turn]++; paintScores();
+    }
+    count6();
+  };
+  li.appendChild(b); list.appendChild(li);
+});
+function count6(){
+  const done = document.querySelectorAll(".item.doneA, .item.doneB").length;
+  el("n6").textContent = done + " of " + items6.length + " done";
+}
+
+/* ---------- init ---------- */
+paintTurn(); paintScores(); left("n1",d1); left("n2",d2); left("n4",d4); left("n5",d5); count6();
+</script>
+
+
+</body></html>
